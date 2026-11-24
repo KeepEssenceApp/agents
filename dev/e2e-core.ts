@@ -1,6 +1,9 @@
-// The same end-to-end run as the tests, against a real core started locally (../core, `npm run dev`, port 8791).
+// The same end-to-end run as the tests, against a real core started locally (../core, `npm run dev`, port 8801).
 //
-//   CORE_ADMIN_SECRET=<the core's ADMIN_SECRET> npm run e2e:core
+//   CORE_URL=http://localhost:8801 CORE_ADMIN_SECRET=<the core's ADMIN_SECRET> \
+//   CORE_CRON_URL='http://localhost:8801/cdn-cgi/handler/scheduled?cron=*+*+*+*+*' E2E_TIMEOUT_SECONDS=780 npm run e2e:core
+//
+// Start the core without LLM_API_KEY, or its built-in assistants will call a real model when the cron runs.
 //
 // What it does, all with made-up content and MODEL=stub (no real model is called):
 //   1. creates an invite and a sign-in code through the core's admin endpoints, signs in as that user
@@ -12,9 +15,10 @@
 //   6. runs the chat-assistant check (acceptance X6)
 // Everything it finds that differs from the contract is listed at the end. The contract decides who is wrong.
 //
-// Other settings: CORE_URL (default http://127.0.0.1:8791), CORE_ADMIN_INVITES_PATH, CORE_ADMIN_LOGIN_CODE_PATH
-// (the admin endpoints are not part of the contract), E2E_TIMEOUT_SECONDS (default 180; without the
-// dispatch assistant running, the core triages an item by default only after 10 minutes: use 720).
+// Settings: CORE_URL (default http://localhost:8801), CORE_ADMIN_INVITES_PATH, CORE_ADMIN_LOGIN_CODE_PATH
+// (the admin endpoints are not part of the contract), CORE_CRON_URL (a local core runs no cron by itself;
+// when set, it is fetched before every visit of the agent), E2E_TIMEOUT_SECONDS (default 180; without the
+// dispatch assistant, the core triages an item by default only after 10 minutes, so use 780).
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -25,10 +29,11 @@ import { stubModel } from "../examples/scheduled-agent/src/model.ts";
 import { connect } from "../examples/scheduled-agent/src/oauth.ts";
 import { Agent } from "../examples/scheduled-agent/src/run.ts";
 
-const CORE = (process.env.CORE_URL ?? "http://127.0.0.1:8791").replace(/\/$/, "");
+const CORE = (process.env.CORE_URL ?? "http://localhost:8801").replace(/\/$/, "");
 const ADMIN_SECRET = process.env.CORE_ADMIN_SECRET ?? "";
 const INVITES = process.env.CORE_ADMIN_INVITES_PATH ?? "/admin/invites";
 const LOGIN_CODES = process.env.CORE_ADMIN_LOGIN_CODE_PATH ?? "/admin/login-codes";
+const CRON = process.env.CORE_CRON_URL;
 const TIMEOUT_MS = Number(process.env.E2E_TIMEOUT_SECONDS ?? 180) * 1000;
 
 const differences: string[] = [];
@@ -153,6 +158,7 @@ async function main(): Promise<void> {
   const until = async (what: string, done: () => Promise<boolean>): Promise<boolean> => {
     const giveUp = Date.now() + TIMEOUT_MS;
     for (;;) {
+      if (CRON) await fetch(CRON).then((response) => response.text());
       await agent().runOnce();
       if (await done()) return say(`PASS  ${what}`), true;
       if (Date.now() > giveUp) return fails(`${what}: not within ${TIMEOUT_MS / 1000}s`), false;
