@@ -9,8 +9,8 @@ Assistant integrations for KeepEssence: connector guides, plugins and self-hoste
 
 | 类 | 例子 | 能做 |
 |---|---|---|
-| 对话型 | Claude、ChatGPT、Gemini | 深入对话 |
-| 定时型 | 自己部署的 agent、Muse | 解读、汇总、深入对话 |
+| 对话型 | Claude、ChatGPT、Gemini | 深挖 |
+| 定时型 | 自己部署的 agent、Muse | 解读、汇总、深挖 |
 
 助手经 MCP（或对应的 REST）取活、交回，用 OAuth 接入。核心内置的分派助手用同一份契约，没有后门；它的代码在 [core](https://github.com/KeepEssenceApp/core)。
 
@@ -26,7 +26,7 @@ Assistant integrations for KeepEssence: connector guides, plugins and self-hoste
 
 ## 先读
 
-- [助手](https://github.com/KeepEssenceApp/spec/blob/main/product/assistants.md)：种类、取活和交回、解读的格式、精读与深入对话。
+- [助手](https://github.com/KeepEssenceApp/spec/blob/main/product/assistants.md)：种类、取活和交回、解读的格式、精读与深挖。
 - [接入一个助手](https://github.com/KeepEssenceApp/spec/blob/main/product/connect.md)：各个产品怎么接。
 - 接口和 MCP 工具见 [spec/contract](https://github.com/KeepEssenceApp/spec/tree/main/contract)。
 
