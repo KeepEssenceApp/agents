@@ -1,0 +1,21 @@
+{
+  "name": "keepessence-agents",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Assistant integrations for KeepEssence: connector guides, plugins and self-hosted agent examples.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "workspaces": ["examples/*"],
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "node --import tsx --test --test-concurrency=1 test/*.test.ts",
+    "fake-core": "node dev/fake-core.mjs",
+    "e2e:core": "node --import tsx dev/e2e-core.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
