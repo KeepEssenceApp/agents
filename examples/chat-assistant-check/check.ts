@@ -40,7 +40,8 @@ export function chatConfig(env: Record<string, string | undefined> = process.env
   return loadConfig({ KEEPESSENCE_AGENT_NAME: "Chat assistant check", ...env, KEEPESSENCE_STEPS: "deep_dive" }, "chat-check");
 }
 
-const READ_ONLY = ["list_deep_dive_candidates", "get_context", "search_digests_and_notes"];
+// What the spec gives a chat assistant: two read-only tools and two that write.
+const READ_ONLY = ["list_deep_dive_candidates", "get_context"];
 const WRITES = ["register_deep_dive", "save_note"];
 
 export async function runCheck(config: Config, options: CheckOptions = {}): Promise<CheckReport> {

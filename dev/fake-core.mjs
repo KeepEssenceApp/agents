@@ -124,17 +124,17 @@ function validateResult(result) {
 // ---- tools: name, step check, input schema; the handler is the same code a REST call would run
 const str = { type: "string" };
 const TOOLS = [
-  { name: "claim_work", description: "Claim up to 10 pieces of work of one kind. A claim lasts 30 minutes.", properties: { kind: { type: "string", enum: WORK_KINDS }, limit: { type: "integer", minimum: 1, maximum: 10 } }, required: ["kind"] },
-  { name: "renew_claim", description: "Extend a claim by another 30 minutes. Only its holder may.", properties: { id: str }, required: ["id"] },
-  { name: "release_claim", description: "Put the work back.", properties: { id: str }, required: ["id"] },
-  { name: "submit_result", description: "Hand back results for a claim, with usage.", properties: { id: str, results: { type: "array", minItems: 1, maxItems: 10, items: { type: "object" } }, usage: { type: "object" }, idempotency_key: { type: "string", minLength: 8, maxLength: 128 } }, required: ["id", "results", "idempotency_key"] },
-  { name: "get_rules", readonly: true, description: "The user's rules and the settings that matter for one kind of work.", properties: { kind: { type: "string", enum: WORK_KINDS } }, required: ["kind"] },
-  { name: "get_context", readonly: true, description: "What an assistant needs to work on one item.", properties: { id: str, for: { type: "string", enum: ["triage", "analysis", "deep_read", "deep_dive"] } }, required: ["id", "for"] },
-  { name: "get_digest_context", readonly: true, description: "The analyses to summarise for a day, including earlier days that were missed.", properties: { day: str }, required: ["day"] },
-  { name: "search_digests_and_notes", readonly: true, description: "Find text in the user's daily digests and notes, as context for work.", properties: { q: { type: "string", minLength: 1, maxLength: 100 }, limit: { type: "integer", minimum: 1, maximum: 100 } }, required: ["q"] },
-  { name: "list_deep_dive_candidates", readonly: true, description: "What the user could dig into now. Optionally narrowed by words.", properties: { q: { type: "string", maxLength: 100 } }, required: [] },
-  { name: "register_deep_dive", description: "Record that a deep dive on one item started in this assistant, only when the user asked for it.", properties: { item_id: str }, required: ["item_id"] },
-  { name: "save_note", description: "Save what came out of a deep dive as a note, only after the user said so.", properties: { title: { type: "string", minLength: 1, maxLength: 200 }, body: { type: "string", minLength: 1, maxLength: 200000 }, item_id: str, sources: { type: "array", maxItems: 20, items: { type: "object" } }, idempotency_key: { type: "string", minLength: 8, maxLength: 128 } }, required: ["title", "body", "idempotency_key"] },
+  { name: "claim_work", steps: ["analysis", "digest", "deep_read"], description: "Claim up to 10 pieces of work of one kind. A claim lasts 30 minutes.", properties: { kind: { type: "string", enum: WORK_KINDS }, limit: { type: "integer", minimum: 1, maximum: 10 } }, required: ["kind"] },
+  { name: "renew_claim", steps: ["analysis", "digest", "deep_read"], description: "Extend a claim by another 30 minutes. Only its holder may.", properties: { id: str }, required: ["id"] },
+  { name: "release_claim", steps: ["analysis", "digest", "deep_read"], description: "Put the work back.", properties: { id: str }, required: ["id"] },
+  { name: "submit_result", steps: ["analysis", "digest", "deep_read"], description: "Hand back results for a claim, with usage.", properties: { id: str, results: { type: "array", minItems: 1, maxItems: 10, items: { type: "object" } }, usage: { type: "object" }, idempotency_key: { type: "string", minLength: 8, maxLength: 128 } }, required: ["id", "results", "idempotency_key"] },
+  { name: "get_rules", steps: ["analysis", "digest", "deep_read"], readonly: true, description: "The user's rules and the settings that matter for one kind of work.", properties: { kind: { type: "string", enum: WORK_KINDS } }, required: ["kind"] },
+  { name: "get_context", steps: ["analysis", "deep_read", "deep_dive"], readonly: true, description: "What an assistant needs to work on one item.", properties: { id: str, for: { type: "string", enum: ["triage", "analysis", "deep_read", "deep_dive"] } }, required: ["id", "for"] },
+  { name: "get_digest_context", steps: ["digest"], readonly: true, description: "The analyses to summarise for a day, including earlier days that were missed.", properties: { day: str }, required: ["day"] },
+  { name: "search_digests_and_notes", steps: ["analysis", "digest", "deep_read"], readonly: true, description: "Find text in the user's daily digests and notes, as context for work.", properties: { q: { type: "string", minLength: 1, maxLength: 100 }, limit: { type: "integer", minimum: 1, maximum: 100 } }, required: ["q"] },
+  { name: "list_deep_dive_candidates", steps: ["deep_dive"], readonly: true, description: "What the user could dig into now. Optionally narrowed by words.", properties: { q: { type: "string", maxLength: 100 } }, required: [] },
+  { name: "register_deep_dive", steps: ["deep_dive"], description: "Record that a deep dive on one item started in this assistant, only when the user asked for it.", properties: { item_id: str }, required: ["item_id"] },
+  { name: "save_note", steps: ["deep_dive"], description: "Save what came out of a deep dive as a note, only after the user said so.", properties: { title: { type: "string", minLength: 1, maxLength: 200 }, body: { type: "string", minLength: 1, maxLength: 200000 }, item_id: str, sources: { type: "array", maxItems: 20, items: { type: "object" } }, idempotency_key: { type: "string", minLength: 8, maxLength: 128 } }, required: ["title", "body", "idempotency_key"] },
 ];
 
 export function createFakeCore(options = {}) {
@@ -409,7 +409,8 @@ export function createFakeCore(options = {}) {
       };
     },
     search_digests_and_notes(assistant, { q, limit = 20 }) {
-      if (!assistant.steps.some((s) => ["analysis", "digest", "deep_read", "deep_dive"].includes(s))) needStep(assistant, "analysis");
+      // As the core has it: the work steps may search; a chat assistant (deep_dive only) may not.
+      if (!assistant.steps.some((s) => ["analysis", "digest", "deep_read"].includes(s))) needStep(assistant, "analysis");
       if (typeof q !== "string" || !q || chars(q) > 100) throw new ApiError(400, "bad_request", "q must be 1 to 100 characters");
       const matches = [];
       for (const digest of state.digests.values()) {
@@ -493,7 +494,8 @@ export function createFakeCore(options = {}) {
     if (method === "ping") return reply({});
     if (method === "tools/list") {
       return reply({
-        tools: TOOLS.map((tool) => ({
+        // Like the core: tools the assistant was not allowed are not listed. Calling one anyway is refused.
+        tools: TOOLS.filter((tool) => tool.steps.some((step) => assistant.steps.includes(step))).map((tool) => ({
           name: tool.name,
           description: tool.description,
           inputSchema: { type: "object", properties: tool.properties, required: tool.required },
