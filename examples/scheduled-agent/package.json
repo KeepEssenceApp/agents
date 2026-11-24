@@ -1,0 +1,20 @@
+{
+  "name": "keepessence-scheduled-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A minimal self-hosted scheduled assistant for KeepEssence: asks for work, analyses, digests, deep-reads, hands back.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "bin": { "keepessence-agent": "./src/cli.ts" },
+  "scripts": {
+    "agent": "tsx src/cli.ts",
+    "connect": "tsx src/cli.ts connect",
+    "run-once": "tsx src/cli.ts run-once"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.13.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "tsx": "^4.19.0"
+  }
+}
