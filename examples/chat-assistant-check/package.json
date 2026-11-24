@@ -1,0 +1,18 @@
+{
+  "name": "keepessence-chat-assistant-check",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plays a chat assistant against the KeepEssence assistant endpoint to verify the deep-dive tools (acceptance X6).",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "check": "tsx check.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "tsx": "^4.19.0"
+  }
+}

@@ -481,6 +481,7 @@ export function createFakeCore(options = {}) {
   function rpc(assistant, message) {
     const { id: rpcId, method, params } = message;
     const reply = (result) => ({ jsonrpc: "2.0", id: rpcId, result });
+    event("rpc", { assistant: assistant.name, method });
     if (method === "initialize") {
       return reply({
         protocolVersion: params?.protocolVersion ?? "2025-06-18",
