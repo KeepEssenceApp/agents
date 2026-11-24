@@ -44,6 +44,20 @@ MCP SDK 在收到 401 时会自己去刷新，那条路不经过我们的锁。�
 
 `dev/fake-core.mjs` 缺省用 8796。这台开发机上有别的程序占着它，表现是 `connect` 报「Invalid OAuth error response … {"detail":"Not Found"}」：请求发到了别人的服务上。换端口：`PORT=8896 node dev/fake-core.mjs`。测试不受影响，它们用随机端口。
 
-## `rm` 在这台机器上会问一句
+## `rm` 和 `cp` 在这台机器上会问一句
 
-shell 里 `rm` 被设成了要确认，脚本里用会卡住不动。用 `rm -f` 或 `command rm`。
+shell 里 `rm`、`cp` 被设成了要确认，脚本里用会卡住不动，直到超时。用 `command rm -f`、`command cp -f`。
+
+## 对着本地的 core 跑
+
+- core 的开发端口是 8801，不是 8791（8791 上是别的程序）。
+- core 的 `wrangler.toml` 里配了正式域名的路由，`wrangler dev` 会把请求的主机名换成它，于是 core 认为这不是本机，对写请求一律回「只接受 HTTPS」。启动时加 `--local-upstream localhost:<端口>`。
+- 本地不会自己跑定时任务，要手动触发：`curl "http://localhost:<端口>/cdn-cgi/handler/scheduled?cron=*+*+*+*+*"`。`npm run e2e:core` 设了 `CORE_CRON_URL` 就会替你触发。
+- core 配了 `LLM_API_KEY` 时，触发定时任务会让内置助手去调真的模型。跑测试时不要带它：另起一份，`--var LLM_API_KEY:`，再把 `LLM_BASE_URL` 指到一个不通的地址。
+- 没有分派助手时，条目要等 10 分钟由 core 补上初筛的缺省值，之后才出现在解读的活里。所以整条链路至少跑 10 分钟，`E2E_TIMEOUT_SECONDS` 设 780。
+- 每日摘要在用户时区 21:00 之后才到期。脚本登录时挑一个此刻是 22 点的时区。
+- 接好之后要在设置里把这只助手选作解读、汇总、精读助手（`PATCH /v1/settings` 的 `roles`，填助手的 id），不然汇总和精读的活不归它。
+
+## 工具清单按步骤过滤
+
+core 的 `tools/list` 只列出这只助手被允许的步骤能用的工具；没列出来的工具硬调，会被拒绝（`forbidden`）。所以检查脚本不能要求清单里有全部工具。对话型助手拿不到 `search_digests_and_notes`。
